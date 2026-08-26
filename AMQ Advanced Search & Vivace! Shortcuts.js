@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Advanced Search & Vivace! Shortcuts
 // @namespace    https://github.com/nekomeiji/AMQ-Script
-// @version      1.7.5
+// @version      1.7.6
 // @description  Replaces the single Song Library search box with 3 dedicated fields. Includes Native Library Shortcuts (Vivace engine merged).
 // @author       nekomeiji
 // @match        https://animemusicquiz.com/*
@@ -524,9 +524,9 @@
             if (shortcuts && shortcuts.length > 0) {
                 // Outer container uses native class for the 2x2 grid, inner uses Vivace flex layout
                 let $shortcutContainer = $(`
-                    <div class="elAnimeEntryInfoListContainer sayu-library-shortcuts-container">
-                        <h4>Shortcuts</h4>
-                        <div class="sayu-shortcuts-list" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                    <div class="elAnimeEntryInfoListContainer sayu-library-shortcuts-container" style="text-align: center;">
+                        <h4 style="text-align: center;">Shortcuts</h4>
+                        <div class="sayu-shortcuts-list" style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;"></div>
                     </div>
                 `);
 
