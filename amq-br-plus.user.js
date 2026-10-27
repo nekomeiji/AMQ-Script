@@ -2,6 +2,8 @@
 // @name         AMQ BR Plus (Colorize & Cover Image)
 // @namespace    https://github.com/nekomeiji/AMQ-Script
 // @version      1.9.6
+// @updateURL    https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-br-plus.user.js
+// @downloadURL  https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-br-plus.user.js
 // @description  Upgrade Battle Royal QOL (Safe Hook Edition)
 // @description  Alt + O to open the window or when in game click on the icon in the top right.
 // @description  ----- Main Page : -----

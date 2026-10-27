@@ -2,6 +2,8 @@
 // @name         AMQ Advanced Search & Vivace! Shortcuts
 // @namespace    https://github.com/nekomeiji/AMQ-Script
 // @version      1.7.6
+// @updateURL    https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-advanced-search-vivace-shortcuts.user.js
+// @downloadURL  https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-advanced-search-vivace-shortcuts.user.js
 // @description  Replaces the single Song Library search box with 3 dedicated fields. Includes Native Library Shortcuts (Vivace engine merged).
 // @author       nekomeiji
 // @match        https://animemusicquiz.com/*

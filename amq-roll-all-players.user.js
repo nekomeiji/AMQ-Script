@@ -2,6 +2,8 @@
 // @name         AMQ Roll All Players
 // @namespace    https://github.com/nekomeiji/AMQ-Script
 // @version      1.0
+// @updateURL    https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-roll-all-players.user.js
+// @downloadURL  https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/amq-roll-all-players.user.js
 // @description  Adds /roll ap command to roll all players in a queue
 // @author       nekomeiji
 // @match        https://*.animemusicquiz.com/*
