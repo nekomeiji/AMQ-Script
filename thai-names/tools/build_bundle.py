@@ -36,7 +36,8 @@ def season_of(name):
     return ROMAN.get(g) or int(g)
 
 
-WORDS = r"(?:ภาคที่|ภาค|ซีซั่นที่|ซีซั่น|ซีซัน|ฤดูกาลที่|ฤดูกาล|season)"
+WORDS = r"(?:ภาคที่|ภาค|ซีซั่นที่|ซีซันที่|ซีซั่น|ซีซัน|ฤดูกาลที่|ฤดูกาล|season)"
+EPISODE_LIST = re.compile(r"^\s*รายชื่อตอน(?:ใน)?\s*")
 MARKER_PAREN = re.compile(rf"\s*[(（]\s*{WORDS}\s*(\d+)\s*[)）]\s*$", re.I)
 MARKER_PLAIN = re.compile(rf"\s*{WORDS}\s*(\d+)\s*$", re.I)
 
@@ -114,7 +115,8 @@ for ann_id, n in names.items():
         cands += anilist.get(ann_id, [])
         if ann_id in animeos_by_ann:
             cands.append(animeos_by_ann[ann_id])
-        cands = list(dict.fromkeys(c.strip() for c in cands if c.strip()))
+        cands = [EPISODE_LIST.sub("", c).strip() for c in cands]  # some Wikidata items are episode-list pages
+        cands = list(dict.fromkeys(c for c in cands if c))
         if not cands:
             continue
         th, alt = cands[0], cands[1:]
