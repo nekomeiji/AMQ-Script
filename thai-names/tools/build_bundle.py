@@ -95,11 +95,28 @@ for text, th in name_overrides.items():
     else:
         unresolved[text] = th
 
-animeos_by_ann = {}
+def series_stem(s):
+    words = re.findall(r"[a-z0-9]+", re.sub(r"\([^)]*\)", " ", (s or "").lower()))
+    return tuple(words[:2])
+
+
+# An anime reached by pages with different Thai titles is ambiguous: keep the page whose first entry shares the
+# AMQ name's series stem, otherwise drop anime-os for it (no title is better than a wrong one).
+animeos_pages = {}
 for page in animeos.values():
     if THAI.search(page["th"]):
         for ann_id in page["ann_ids"]:
-            animeos_by_ann.setdefault(ann_id, page["th"])
+            animeos_pages.setdefault(ann_id, []).append(page)
+animeos_by_ann = {}
+for ann_id, pages in animeos_pages.items():
+    titles = {p["th"] for p in pages}
+    if len(titles) == 1:
+        animeos_by_ann[ann_id] = pages[0]["th"]
+        continue
+    stems = {series_stem(names[ann_id].get("jp")), series_stem(names[ann_id].get("en"))}
+    good = {p["th"] for p in pages if p["entries"] and series_stem(p["entries"][0]) in stems}
+    if len(good) == 1:
+        animeos_by_ann[ann_id] = good.pop()
 
 items = []
 changed = []

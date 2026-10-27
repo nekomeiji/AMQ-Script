@@ -58,39 +58,84 @@ for slug in slugs:
     with open(path, encoding="utf-8") as f:
         pages[slug] = f.read()
 
-index = {}
+THAI = re.compile(r"[฀-๿]")
+SEASON_WORDS = re.compile(
+    r"\b(?:\d+(?:st|nd|rd|th)\s+season|season\s*\d+(?:\s*-\s*\d+)?|(?:\d+(?:st|nd|rd|th)\s+)?cour\s*\d*|part\s*\d+)\b"
+    r"|\s(?:ii|iii|iv)$")
+
+
+def norm_relaxed(s):
+    """Like norm, but ignores season/cour wording, parentheses and the wo/o spelling difference."""
+    s = re.sub(r"\([^)]*\)", " ", s.lower())
+    s = SEASON_WORDS.sub(" ", s)
+    s = re.sub(r"\bwo\b", "o", s)
+    return norm(s)
+
+
+def series_stem(s):
+    """First two words of a title (one if it has only one), used to tell which entries share a series."""
+    words = re.findall(r"[a-z0-9]+", re.sub(r"\([^)]*\)", " ", s.lower()))
+    return tuple(words[:2])
+
+
+exact_index, relaxed_index = {}, {}
 with open(names_path, encoding="utf-8") as f:
     for ann_id, n in json.load(f).items():
         for key in (n.get("jp"), n.get("en")):
             if key:
-                index.setdefault(norm(key), set()).add(ann_id)
+                exact_index.setdefault(norm(key), set()).add(ann_id)
+                relaxed_index.setdefault(norm_relaxed(key), set()).add(ann_id)
 
 result = {}
-total_entries = matched_entries = 0
+total_entries = matched_exact = matched_relaxed = 0
 for slug, page in pages.items():
     m = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S)
     if not m:
         continue
-    th = html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip()
+    h1 = html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip()
     entries = []
     for h3 in re.findall(r"<h3[^>]*>(.*?)</h3>", page, re.S):
         text = html.unescape(re.sub(r"<[^>]+>", "", h3)).strip()
         text = re.sub(r"\s*\(\d{4}\)\s*$", "", text)
         if re.search(r"[A-Za-z]", text):
             entries.append(text)
+    # Single-entry pages have no season list: the h1 is "<romaji> <Thai>" or only the romaji.
+    first_thai = THAI.search(h1)
+    paren = re.match(r"^(.*?)\s*[(（](.*[฀-๿].*)[)）]\s*$", h1)
+    if paren and paren.group(1).strip() and not THAI.search(paren.group(1)):
+        latin, th = paren.group(1).strip(), paren.group(2).strip()
+        entries.append(latin)
+    elif first_thai and first_thai.start() > 0:
+        latin, th = h1[:first_thai.start()].strip(" (（"), h1[first_thai.start():].strip()
+        if latin:
+            entries.append(latin)
+    else:
+        th = h1 if first_thai else ""
+    while th.endswith(")") and th.count(")") > th.count("("):
+        th = th[:-1].rstrip()
+    if not th or th.startswith("และ"):
+        continue  # no Thai title, or a multi-series page whose heading is not a title
+    # The Thai title belongs to the first entry's series; other series listed on the page must not inherit it.
+    stem = series_stem(entries[0]) if entries else None
     ids = set()
     for text in entries:
+        if series_stem(text) != stem:
+            continue
         total_entries += 1
-        hit = index.get(norm(text))
+        hit = exact_index.get(norm(text))
         if hit:
-            matched_entries += 1
-            ids |= hit
+            matched_exact += 1
+        else:
+            hit = relaxed_index.get(norm_relaxed(text))
+            if hit:
+                matched_relaxed += 1
+        ids |= hit or set()
     result[slug] = {"th": th, "entries": entries, "ann_ids": sorted(ids, key=int)}
 
 with open(out_path, "w", encoding="utf-8") as f:
     json.dump(result, f, ensure_ascii=False, indent=1)
 
 pages_matched = sum(1 for r in result.values() if r["ann_ids"])
-print(f"pages parsed: {len(result)}, with at least one AMQ match: {pages_matched}")
-print(f"season entries: {total_entries}, matched by name: {matched_entries}")
+print(f"pages with a Thai title: {len(result)}, with at least one AMQ match: {pages_matched}")
+print(f"entries: {total_entries}, matched exactly: {matched_exact}, matched after relaxing season wording: {matched_relaxed}")
 print(f"AMQ annIds reached: {len({a for r in result.values() for a in r['ann_ids']})}")
