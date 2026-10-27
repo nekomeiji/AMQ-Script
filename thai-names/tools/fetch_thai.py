@@ -17,12 +17,13 @@ ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "AMQ-thai-names/0.1 (https://github.com/nekomeiji/AMQ-Script)"
 
 QUERY = """
-SELECT ?item ?mal ?al ?label (GROUP_CONCAT(DISTINCT ?alias; separator="|") AS ?aliases) WHERE {
+SELECT ?item ?mal ?al ?label ?enlabel (GROUP_CONCAT(DISTINCT ?alias; separator="|") AS ?aliases) WHERE {
   { ?item wdt:P4086 ?mal } UNION { ?item wdt:P8729 ?al }
   ?item rdfs:label ?label . FILTER(LANG(?label) = "th")
+  OPTIONAL { ?item rdfs:label ?enlabel . FILTER(LANG(?enlabel) = "en") }
   OPTIONAL { ?item skos:altLabel ?alias . FILTER(LANG(?alias) = "th") }
 }
-GROUP BY ?item ?mal ?al ?label
+GROUP BY ?item ?mal ?al ?label ?enlabel
 """
 
 
@@ -45,7 +46,7 @@ for r in rows:
     qid = r["item"]["value"].rsplit("/", 1)[-1]
     th = r["label"]["value"]
     alias = [a for a in r.get("aliases", {}).get("value", "").split("|") if a and a != th]
-    entry = {"th": th, "alt": alias, "src": "wikidata", "ref": qid}
+    entry = {"th": th, "alt": alias, "src": "wikidata", "ref": qid, "en": r.get("enlabel", {}).get("value", "")}
     if "mal" in r:
         by_mal.setdefault(int(r["mal"]["value"]), entry)
     if "al" in r:

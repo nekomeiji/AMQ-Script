@@ -37,6 +37,32 @@ def season_of(name):
 
 
 WORDS = r"(?:ภาคที่|ภาค|ซีซั่นที่|ซีซันที่|ซีซั่น|ซีซัน|ฤดูกาลที่|ฤดูกาล|season)"
+LATIN_TAIL = re.compile(r"^(.*[฀-๿])\s*([(（]?)\s*([A-Za-z][A-Za-z0-9 '’:\-!?.&,/]*?)\s*[)）]?\s*$")
+
+
+def name_key(s):
+    s = re.sub(r"\([^)]*\)", " ", (s or "").lower())
+    s = re.sub(r"\b(?:\d+(?:st|nd|rd|th)\s+season|season\s*\d+(?:\s*-\s*\d+)?|part\s*\d+|cour\s*\d*)\b|\s(?:ii|iii|iv)$", " ", s)
+    return re.sub(r"[^a-z0-9]+", "", s)
+
+
+def strip_latin_tail(th, n):
+    """Drop a trailing Latin phrase (2+ words, or in parentheses) that just repeats the anime's jp/en name.
+
+    A single trailing word (e.g. "ยอดผู้กล้า Helck") is part of the title and stays, as does Latin inside the title.
+    """
+    m = LATIN_TAIL.match(th)
+    if not m:
+        return th
+    if not m.group(2) and len(m.group(3).split()) < 2:
+        return th
+    key = name_key(m.group(3))
+    known = {name_key(n.get("jp")), name_key(n.get("en"))} - {""}
+    if key and any(k == key or (len(key) >= 7 and k.startswith(key)) for k in known):
+        return m.group(1).rstrip()
+    return th
+
+
 EPISODE_LIST = re.compile(r"^\s*รายชื่อตอน(?:ใน)?\s*")
 MARKER_PAREN = re.compile(rf"\s*[(（]\s*{WORDS}\s*(\d+)\s*[)）]\s*$", re.I)
 MARKER_PLAIN = re.compile(rf"\s*{WORDS}\s*(\d+)\s*$", re.I)
@@ -118,8 +144,10 @@ for ann_id, pages in animeos_pages.items():
     if len(good) == 1:
         animeos_by_ann[ann_id] = good.pop()
 
+MOVIE = re.compile(r"\b(?:movie|film|motion picture|gekijouban)\b", re.I)
 items = []
 changed = []
+skipped_movie = []
 for ann_id, n in names.items():
     ov = overrides.get(ann_id)
     if ov and ov.get("th"):
@@ -128,11 +156,15 @@ for ann_id, n in names.items():
         cands = []
         wd = wikidata.get(ann_id, {})
         if wd.get("th") and THAI.search(wd["th"]):
+            amq_text = f"{n.get('jp') or ''} {n.get('en') or ''}"
+            if MOVIE.search(wd.get("en", "")) and not MOVIE.search(amq_text):
+                # Either the id points at the movie (wrong title) or the AMQ name just omits "movie": report only.
+                skipped_movie.append((ann_id, n.get("en") or n.get("jp"), wd["en"]))
             cands += [wd["th"]] + wd.get("alt", [])
         cands += anilist.get(ann_id, [])
         if ann_id in animeos_by_ann:
             cands.append(animeos_by_ann[ann_id])
-        cands = [EPISODE_LIST.sub("", c).strip() for c in cands]  # some Wikidata items are episode-list pages
+        cands = [strip_latin_tail(EPISODE_LIST.sub("", c).strip(), n) for c in cands]  # some Wikidata items are episode-list pages
         cands = list(dict.fromkeys(c for c in cands if c))
         if not cands:
             continue
@@ -156,5 +188,8 @@ with open("bundle.json", "w", encoding="utf-8") as f:
 print(f"bundle: {len(items)} of {len(names)} anime have a Thai title, season wording changed on {len(changed)}")
 for en, old, new in changed[:15]:
     print(f"  {en} | {old} -> {new}")
+print(f"Check: Wikidata says movie but the AMQ name does not (kept): {len(skipped_movie)}")
+for ann_id, amq_name, wd_en in skipped_movie:
+    print(f"  {ann_id} | AMQ: {amq_name} | Wikidata: {wd_en}")
 print(f"name overrides kept by string (no annId match): {len(unresolved)}")
 print(f"size: {os.path.getsize('bundle.json') / 1024:.0f} KB")
