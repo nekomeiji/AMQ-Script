@@ -1,0 +1,6 @@
+﻿# intermediate data, regenerate with tools/ (needs songs.sqlite3)
+cache/
+anime_names.json
+thai_names.json
+anilist_thai.json
+animeos_matches.json
