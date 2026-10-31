@@ -27,7 +27,8 @@ UNICODE_ROMAN = {"Ⅰ": "I", "Ⅱ": "II", "Ⅲ": "III", "Ⅳ": "IV", "Ⅴ": "V",
                  "Ⅶ": "VII", "Ⅷ": "VIII", "Ⅸ": "IX", "Ⅹ": "X"}
 # Spelling the user settled on; applied to source titles (overrides are used verbatim). Same list in import_review.py.
 SPELLING = [("เฟท/สเตย์ ไนท์", "เฟต/สเตย์ไนท์"), ("เฟท/สเตย์ไนท์", "เฟต/สเตย์ไนท์"),
-            ("เฟต/สเตย์ ไนท์", "เฟต/สเตย์ไนท์"), ("เฟต/สเตย์ไนต์", "เฟต/สเตย์ไนท์")]
+            ("เฟต/สเตย์ ไนท์", "เฟต/สเตย์ไนท์"), ("เฟต/สเตย์ไนต์", "เฟต/สเตย์ไนท์"),
+            ("สงครามเกมไพ่", "ดูเอลมาสเตอร์")]
 
 
 def ascii_roman(s):
@@ -197,6 +198,8 @@ for ann_id, n in names.items():
                 alt = [th] + alt  # keep the original wording searchable
             changed.append((n.get("en") or n.get("jp"), th, new))
             th = new
+    th = re.sub(r"\s+", " ", th).strip()  # hand edits sometimes leave a double or odd space
+    alt = [re.sub(r"\s+", " ", a).strip() for a in alt]
     items.append([int(ann_id), n.get("jp") or "", n.get("en") or "", th, alt])
 
 # jp/en pairs of every anime, only used by the userscript to sort the editor table by the jp name
