@@ -23,9 +23,28 @@ def load(path, default):
         return json.load(f)
 
 
+UNICODE_ROMAN = {"Ⅰ": "I", "Ⅱ": "II", "Ⅲ": "III", "Ⅳ": "IV", "Ⅴ": "V", "Ⅵ": "VI",
+                 "Ⅶ": "VII", "Ⅷ": "VIII", "Ⅸ": "IX", "Ⅹ": "X"}
+# Spelling the user settled on; applied to source titles (overrides are used verbatim). Same list in import_review.py.
+SPELLING = [("เฟท/สเตย์ ไนท์", "เฟต/สเตย์ไนท์"), ("เฟท/สเตย์ไนท์", "เฟต/สเตย์ไนท์"),
+            ("เฟต/สเตย์ ไนท์", "เฟต/สเตย์ไนท์"), ("เฟต/สเตย์ไนต์", "เฟต/สเตย์ไนท์")]
+
+
+def ascii_roman(s):
+    """Single-character Roman numerals (Ⅱ) become plain letters (II) so the season rules can see them."""
+    return "".join(UNICODE_ROMAN.get(c, c) for c in s)
+
+
+def respell(s):
+    for old, new in SPELLING:
+        s = s.replace(old, new)
+    return s
+
+
 def season_of(name):
     if not name:
         return None
+    name = ascii_roman(name)
     m = (re.search(r"\b(\d+)(?:st|nd|rd|th) season\b", name, re.I)
          or re.search(r"\bseason (\d+)\b", name, re.I)
          or re.search(r"\s(II|III|IV)$", name)
@@ -150,6 +169,8 @@ changed = []
 skipped_movie = []
 for ann_id, n in names.items():
     ov = overrides.get(ann_id)
+    if ov is not None and ov.get("th") == "":
+        continue  # explicit "no Thai title" (override with an empty th)
     if ov and ov.get("th"):
         th, alt = ov["th"], list(ov.get("alt", []))
     else:
@@ -164,7 +185,7 @@ for ann_id, n in names.items():
         cands += anilist.get(ann_id, [])
         if ann_id in animeos_by_ann:
             cands.append(animeos_by_ann[ann_id])
-        cands = [strip_latin_tail(EPISODE_LIST.sub("", c).strip(), n) for c in cands]  # some Wikidata items are episode-list pages
+        cands = [respell(ascii_roman(strip_latin_tail(EPISODE_LIST.sub("", c).strip(), n))) for c in cands]  # some Wikidata items are episode-list pages
         cands = list(dict.fromkeys(c for c in cands if c))
         if not cands:
             continue
