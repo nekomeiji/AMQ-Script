@@ -122,6 +122,7 @@ names = load("anime_names.json", {})
 wikidata = load("thai_names.json", {})
 anilist = load("anilist_thai.json", {})
 animeos = load("animeos_matches.json", {})
+bilibili = load("thai_bilibili.json", {})  # written by tools/merge_bilibili.py
 overrides = load("thai_overrides.json", {})
 
 # String-keyed overrides exported from the userscript: resolve to an annId when the string is a jp/en name,
@@ -164,6 +165,17 @@ for ann_id, pages in animeos_pages.items():
     if len(good) == 1:
         animeos_by_ann[ann_id] = good.pop()
 
+GENERIC_ANIMEOS = {"ซีรีส์"}  # headings the anime-os parser sometimes returns instead of a title
+
+
+def clean_animeos(title):
+    """anime-os titles can carry the years, a second title after " / ", or a Latin copy: keep one Thai title plus Thai alternates."""
+    title = re.sub(r"\s*[(（][\d,\s]+[)）]\s*$", "", title).strip()
+    parts = [p.strip() for p in title.split(" / ") if p.strip()]
+    parts = [p for p in parts if THAI.search(p) and p not in GENERIC_ANIMEOS]
+    return parts
+
+
 MOVIE = re.compile(r"\b(?:movie|film|motion picture|gekijouban)\b", re.I)
 items = []
 changed = []
@@ -174,8 +186,14 @@ for ann_id, n in names.items():
         continue  # explicit "no Thai title" (override with an empty th)
     if ov and ov.get("th"):
         th, alt = ov["th"], list(ov.get("alt", []))
+        bl = bilibili.get(ann_id)
+        if bl and bl.get("alt_only") and bl["th"] != th and bl["th"] not in alt:
+            alt.append(bl["th"])  # the licensed title stays searchable; the override stays the title
     else:
         cands = []
+        bl = bilibili.get(ann_id)
+        if bl and not bl.get("alt_only"):
+            cands += [bl["th"]] + bl.get("alt", [])  # licensed Thai release title first; the older automatic titles follow as alt
         wd = wikidata.get(ann_id, {})
         if wd.get("th") and THAI.search(wd["th"]):
             amq_text = f"{n.get('jp') or ''} {n.get('en') or ''}"
@@ -185,7 +203,7 @@ for ann_id, n in names.items():
             cands += [wd["th"]] + wd.get("alt", [])
         cands += anilist.get(ann_id, [])
         if ann_id in animeos_by_ann:
-            cands.append(animeos_by_ann[ann_id])
+            cands += clean_animeos(animeos_by_ann[ann_id])
         cands = [respell(ascii_roman(strip_latin_tail(EPISODE_LIST.sub("", c).strip(), n))) for c in cands]  # some Wikidata items are episode-list pages
         cands = list(dict.fromkeys(c for c in cands if c))
         if not cands:
