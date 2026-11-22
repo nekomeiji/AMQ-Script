@@ -42,7 +42,7 @@ JP_SEASON = re.compile(r"(?:season|シーズン)\s*(\d+)|第?(\d+)期|(\d+)(?:st
 CIRCLED = "①②③④⑤⑥⑦⑧⑨"
 
 
-ALT_SKIP = {"10970", "15542"}  # bilibili's title is for another season / unusable ("ปี 5"), so it is not offered as an alt
+ALT_SKIP = {"10970", "15542", "19380"}  # bilibili's title is for another season / unusable ("ปี 5"), so it is not offered as an alt
 
 
 def loose(s):
