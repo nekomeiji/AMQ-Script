@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Thai Names
 // @namespace    https://github.com/nekomeiji/AMQ-Script
-// @version      0.2.0
+// @version      0.2.1
 // @updateURL    https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/thai-names/amqThaiNames.user.js
 // @downloadURL  https://raw.githubusercontent.com/nekomeiji/AMQ-Script/main/thai-names/amqThaiNames.user.js
 // @description  Show and search Thai anime titles in the AMQ answer dropdown, with an in-game window to view and edit them.
@@ -296,6 +296,7 @@
 					<button id="atnExport">Export</button>
 					<button id="atnImport">Import</button>
 					<button id="atnImportBundle" title="โหลดไฟล์ bundle.json จากเครื่อง">Bundle</button>
+					<button id="atnClearMine" title="ลบชื่อที่แก้เองทั้งหมด แล้วใช้ชื่อจาก bundle อย่างเดียว (ดาวน์โหลดไฟล์สำรองให้ก่อน)">ล้างที่แก้เอง</button>
 					<input type="file" id="atnFile" accept=".json" style="display:none">
 				</div>
 				<div id="atnInfo" class="atn-src"></div>
@@ -330,6 +331,18 @@
 		$id('atnPrev').onclick = () => { page = Math.max(0, page - 1); render(); };
 		$id('atnNext').onclick = () => { page++; render(); };
 		$id('atnExport').onclick = () => download('thai_name_overrides.json', user);
+		$id('atnClearMine').onclick = () => {
+			const count = Object.keys(user).length;
+			if (!count) { window.alert('ยังไม่มีชื่อที่แก้เอง'); return; }
+			if (!window.confirm(`ลบชื่อที่แก้เองทั้งหมด ${count} ชื่อ แล้วใช้ชื่อจาก bundle อย่างเดียว?\nระบบจะดาวน์โหลดไฟล์สำรองให้ก่อน`)) return;
+			download('thai_name_overrides.json', user);
+			user = {};
+			store.set(KEY_USER, user);
+			rebuildIndex();
+			refreshAutocomplete();
+			page = 0;
+			render();
+		};
 		let importKind = 'user';
 		$id('atnImport').onclick = () => { importKind = 'user'; $id('atnFile').click(); };
 		$id('atnImportBundle').onclick = () => { importKind = 'bundle'; $id('atnFile').click(); };
